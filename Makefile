@@ -4,13 +4,15 @@ LD := $(CXX)
 AR := ar
 OBJCOPY := objcopy
 
-CFLAGS := -ffunction-sections -O0 -std=c++1y -Wall -pthread
 CXXFLAGS := -ffunction-sections -O0 -std=c++1y -Wall -pthread
 
-all: example-01
+all: example-01 example-05
 
 example-01: example-01.cpp
-	$(CXX) $(CFLAGS) $(CXXFLAGS) $< -o $@
+	$(CXX) $(CXXFLAGS) $< -o $@
+
+example-05: example-05.cpp
+	$(CXX) $(CXXFLAGS) -I/usr/local/include $< -L/usr/local/boost_1_59_0/stage/lib -lboost_system -lboost_thread -o $@
 
 clean:
-	rm -f example-01
+	rm -f example-01 example-05
