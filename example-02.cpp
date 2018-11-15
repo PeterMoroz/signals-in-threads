@@ -17,6 +17,16 @@
 #include <boost/thread.hpp>
 #include <boost/threadpool.hpp>
 
+/* 
+ * The class emulates task, which is running during long term of time.
+ * Its job is:
+ * 1. open text file
+ * 2. read file line by line
+ * 3. count the frequency of occurency of each word
+ * 
+ * The job is performed by method operator()(), invoked
+ * in scope of separate thread from the pool of threads.
+ * */
 class Task final {
 
 public:
@@ -110,7 +120,9 @@ int main(int argc, char** argv) {
 	tp.schedule(task2);
 	tp.schedule(task3);
 	tp.schedule(task4);
-	
+
+	std::cout << " PID = " << getpid() 
+		<< " main thread TID " << pthread_self() << std::endl;	
 	// printing the status of tasks to console, untill receive a signal
 	// a that one from those which were registered earlier	
 	while (::signum == 0) {
