@@ -5,6 +5,7 @@
 #include <ctime>
 
 #include <array>
+#include <atomic>
 #include <fstream>
 #include <functional>
 #include <iostream>
@@ -78,18 +79,18 @@ private:
 
 static sigset_t sig_set;
 
-static volatile int sig_num = 0; // number of the latest received signal
-static volatile int running = 1;
+static std::atomic<int> sig_num{ 0 }; // number of the latest received signal
+static std::atomic<bool> running{ true };
 
 static void* sig_handle_worker_routine(void* arg) {
 	int sig_num = 0;
 	bool emergency = false;
-	while (::running) {
-		if (::sigwait(&::sig_set, &sig_num) < 0) {
+	while (::running.load()) {
+		if (sigwait(&::sig_set, &sig_num) < 0) {
 			perror("sigwait()");
 			emergency = true;
 		} else {
-			::sig_num = sig_num;
+			::sig_num.store(sig_num);
 			std::cout << "received signal: " << sig_num << std::endl;
 		}
 		
@@ -108,7 +109,10 @@ static void* sig_handle_worker_routine(void* arg) {
 			break;
 		}
 	}
+	/*
 	::running = 0;
+	* */
+	::running.store(false);
 	return NULL;
 }
 
@@ -194,19 +198,7 @@ int main(int argc, char** argv) {
 	std::cout << "awaiting untill work tasks finished...\n";
 	tp.wait();
 
-	/*
-	 * unsuccessfull attempts to close signals handler thread
-	 * 
-	 * ::running = 0;
-	 * doesn't affect on signals handler thread, because it is blocked on sigwait
-	 * 
-	 * raise(SIGTERM);
-	 * doesn't affect on signals handler thread, 
-	 * because it sends signal to the main thread, where SIGTERM is blocked
-	 * */
-	 
-	
-	if (::running) {
+	if (::running.load()) {
 		// signals handler thread still working
 		if (pthread_kill(sig_handle_worker, SIGTERM) != 0) {
 			perror("pthread_kill()");
@@ -225,7 +217,7 @@ int main(int argc, char** argv) {
 		perror("sigprocmask()");
 		std::cerr << "couldn't restore signals mask\n";
 		std::exit(-1);
-	}	
+	}
 	
 	return 0;
 }
